@@ -2,10 +2,10 @@
 # This playbook will install mysql and create db user and give permissions.
 
 - name: Install Mysql package
-  yum: name={{ item }} state=installed
+  dnf: name={{ item }} state=installed
   with_items:
-   - mysql-server
-   - MySQL-python
+   - mariadb-server
+   - python2-mysql
    - libselinux-python
    - libsemanage-python
 
@@ -16,15 +16,14 @@
 - name: Create Mysql configuration file
   template: src=my.cnf.j2 dest=/etc/my.cnf
   notify:
-  - restart mysql
+  - restart mariadb
 
 - name: Start Mysql Service
-  service: name=mysqld state=started enabled=yes
+  service: name=mariadb state=started enabled=yes
 
 - name: insert iptables rule
-  lineinfile: dest=/etc/sysconfig/iptables state=present regexp="{{ mysql_port }}"
-              insertafter="^:OUTPUT " line="-A INPUT -p tcp  --dport {{ mysql_port }} -j  ACCEPT"
-  notify: restart iptables
+  firewalld: port={{ mysql_port }}/tcp permanent=true state=enabled
+  notify: restart firewalld
 
 - name: Create Application Database
   mysql_db: name={{ dbname }} state=present
